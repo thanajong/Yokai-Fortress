@@ -1,0 +1,830 @@
+#define _CRT_SECURE_NO_WARNING 1
+#include<stdio.h>
+#include<windows.h>
+#include<conio.h>
+#include<bits/stdc++.h>
+using namespace std;
+#include<thread>
+#include<time.h>
+#define screen_x 130
+#define screen_y 56
+
+bool play = 1;
+HANDLE wHnd;
+COORD bufferSize = { screen_x,screen_y };
+SMALL_RECT windowSize = { 0,0,screen_x - 1,screen_y - 1 };
+CHAR_INFO consoleBuffer[screen_x * screen_y];
+COORD characterPos = { 0,0 };
+HANDLE rHnd;
+DWORD fdwMode;
+struct enemy {
+	int x;
+	int y;
+	int size;
+};
+vector<enemy> enemy_up;
+vector<enemy> enemy_down;
+vector<enemy> enemy_left;
+vector<enemy> enemy_right;
+int enemysup, enemysdown, enemysleft, enemysright, enemymup, enemymdown, enemymleft, enemymright, enemylup, enemyldown, enemylleft, enemylright;
+
+void fill_border_to_buffer()
+{
+	ifstream map("map.txt");
+	if (map.is_open())
+	{
+		string line;
+		int lineCount = 0;
+		while (getline(map, line))
+		{
+
+			for (int column = 0; column < line.length(); column++)
+			{
+				if (line[column] == '1')
+				{
+					consoleBuffer[column + screen_x * lineCount].Char.AsciiChar = ' ';
+					consoleBuffer[column + screen_x * lineCount].Attributes = 50;
+				}
+			}
+			lineCount++;
+		}
+	}
+}
+
+int setConsole(int x, int y)
+{
+	wHnd = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleWindowInfo(wHnd, TRUE, &windowSize);
+	SetConsoleScreenBufferSize(wHnd, bufferSize);
+	return 0;
+}
+
+void fill_buffer_to_console()
+{
+	WriteConsoleOutputA(wHnd, consoleBuffer, bufferSize, characterPos,
+		&windowSize);
+}
+
+void clear_buffer()
+{
+	for (int y = 0; y < screen_y; ++y) {
+		for (int x = 0; x < screen_x; ++x) {
+			consoleBuffer[x + screen_x * y].Char.AsciiChar = ' ';
+			consoleBuffer[x + screen_x * y].Attributes = 7;
+		}
+	}
+}
+
+int setMode()
+{
+	rHnd = GetStdHandle(STD_INPUT_HANDLE);
+	fdwMode = ENABLE_EXTENDED_FLAGS | ENABLE_WINDOW_INPUT |
+		ENABLE_MOUSE_INPUT;
+	SetConsoleMode(rHnd, fdwMode);
+	return 0;
+}
+
+void drawgunxd(int x, int y)
+{
+	consoleBuffer[x + 1 + screen_x * (y - 1)].Char.AsciiChar = '+';
+	consoleBuffer[x + 1 + screen_x * (y - 1)].Attributes = 176;
+	consoleBuffer[x + screen_x * y].Char.AsciiChar = '+';
+	consoleBuffer[x + screen_x * y].Attributes = 176;
+	consoleBuffer[x + 1 + screen_x * y].Char.AsciiChar = '+';
+	consoleBuffer[x + 1 + screen_x * y].Attributes = 176;
+	consoleBuffer[x + 2 + screen_x * y].Char.AsciiChar = '+';
+	consoleBuffer[x + 2 + screen_x * y].Attributes = 176;
+}
+
+void drawgunxu(int x, int y)
+{
+	consoleBuffer[x + screen_x * y].Char.AsciiChar = '+';
+	consoleBuffer[x + screen_x * y].Attributes = 176;
+	consoleBuffer[x + 1 + screen_x * y].Char.AsciiChar = '+';
+	consoleBuffer[x + 1 + screen_x * y].Attributes = 176;
+	consoleBuffer[x + 2 + screen_x * y].Char.AsciiChar = '+';
+	consoleBuffer[x + 2 + screen_x * y].Attributes = 176;
+	consoleBuffer[x + 1 + screen_x * (y + 1)].Char.AsciiChar = '+';
+	consoleBuffer[x + 1 + screen_x * (y + 1)].Attributes = 176;
+}
+
+void drawgunyl(int x, int y)
+{
+	consoleBuffer[x + screen_x * y].Char.AsciiChar = '+';
+	consoleBuffer[x + screen_x * y].Attributes = 176;
+	consoleBuffer[x + screen_x * (y + 1)].Char.AsciiChar = '+';
+	consoleBuffer[x + screen_x * (y + 1)].Attributes = 176;
+	consoleBuffer[x + 1 + screen_x * (y + 1)].Char.AsciiChar = '+';
+	consoleBuffer[x + 1 + screen_x * (y + 1)].Attributes = 176;
+	consoleBuffer[x + screen_x * (y + 2)].Char.AsciiChar = '+';
+	consoleBuffer[x + screen_x * (y + 2)].Attributes = 176;
+}
+
+void drawgunyr(int x, int y)
+{
+	consoleBuffer[x + screen_x * y].Char.AsciiChar = '+';
+	consoleBuffer[x + screen_x * y].Attributes = 176;
+	consoleBuffer[x - 1 + screen_x * (y + 1)].Char.AsciiChar = '+';
+	consoleBuffer[x - 1 + screen_x * (y + 1)].Attributes = 176;
+	consoleBuffer[x + screen_x * (y + 1)].Char.AsciiChar = '+';
+	consoleBuffer[x + screen_x * (y + 1)].Attributes = 176;
+	consoleBuffer[x + screen_x * (y + 2)].Char.AsciiChar = '+';
+	consoleBuffer[x + screen_x * (y + 2)].Attributes = 176;
+}
+
+void erasegunx(int x, int y)
+{
+	// goto(...,...); printf("..."); setcolor(...); but draw only 1 char at a time.
+	consoleBuffer[x + screen_x * (y - 1)].Char.AsciiChar = ' ';
+	consoleBuffer[x + screen_x * (y - 1)].Attributes = 0;
+	consoleBuffer[x + 1 + screen_x * (y - 1)].Char.AsciiChar = ' ';
+	consoleBuffer[x + 1 + screen_x * (y - 1)].Attributes = 0;
+	consoleBuffer[x + 2 + screen_x * (y - 1)].Char.AsciiChar = ' ';
+	consoleBuffer[x + 2 + screen_x * (y - 1)].Attributes = 0;
+
+	consoleBuffer[x + screen_x * y].Char.AsciiChar = ' ';
+	consoleBuffer[x + screen_x * y].Attributes = 0;
+	consoleBuffer[x + 1 + screen_x * y].Char.AsciiChar = ' ';
+	consoleBuffer[x + 1 + screen_x * y].Attributes = 0;
+	consoleBuffer[x + 2 + screen_x * y].Char.AsciiChar = ' ';
+	consoleBuffer[x + 2 + screen_x * y].Attributes = 0;
+
+	consoleBuffer[x + screen_x * (y + 1)].Char.AsciiChar = ' ';
+	consoleBuffer[x + screen_x * (y + 1)].Attributes = 0;
+	consoleBuffer[x + 1 + screen_x * (y + 1)].Char.AsciiChar = ' ';
+	consoleBuffer[x + 1 + screen_x * (y + 1)].Attributes = 0;
+	consoleBuffer[x + 2 + screen_x * (y + 1)].Char.AsciiChar = ' ';
+	consoleBuffer[x + 2 + screen_x * (y + 1)].Attributes = 0;
+}
+
+void eraseguny(int x, int y)
+{
+	consoleBuffer[x + screen_x * y].Char.AsciiChar = ' ';
+	consoleBuffer[x + screen_x * y].Attributes = 0;
+	consoleBuffer[x + 1 + screen_x * y].Char.AsciiChar = ' ';
+	consoleBuffer[x + 1 + screen_x * y].Attributes = 0;
+	consoleBuffer[x + screen_x * (y + 1)].Char.AsciiChar = ' ';
+	consoleBuffer[x + screen_x * (y + 1)].Attributes = 0;
+	consoleBuffer[x + 1 + screen_x * (y + 1)].Char.AsciiChar = ' ';
+	consoleBuffer[x + 1 + screen_x * (y + 1)].Attributes = 0;
+	consoleBuffer[x + screen_x * (y + 2)].Char.AsciiChar = ' ';
+	consoleBuffer[x + screen_x * (y + 2)].Attributes = 0;
+	consoleBuffer[x + 1 + screen_x * (y + 2)].Char.AsciiChar = ' ';
+	consoleBuffer[x + 1 + screen_x * (y + 2)].Attributes = 0;
+
+	consoleBuffer[x - 1 + screen_x * y].Char.AsciiChar = ' ';
+	consoleBuffer[x - 1 + screen_x * y].Attributes = 0;
+	consoleBuffer[x + screen_x * y].Char.AsciiChar = ' ';
+	consoleBuffer[x + screen_x * y].Attributes = 0;
+	consoleBuffer[x - 1 + screen_x * (y + 1)].Char.AsciiChar = ' ';
+	consoleBuffer[x - 1 + screen_x * (y + 1)].Attributes = 0;
+	consoleBuffer[x + screen_x * (y + 1)].Char.AsciiChar = ' ';
+	consoleBuffer[x + screen_x * (y + 1)].Attributes = 0;
+	consoleBuffer[x - 1 + screen_x * (y + 2)].Char.AsciiChar = ' ';
+	consoleBuffer[x - 1 + screen_x * (y + 2)].Attributes = 0;
+	consoleBuffer[x + screen_x * (y + 2)].Char.AsciiChar = ' ';
+	consoleBuffer[x + screen_x * (y + 2)].Attributes = 0;
+
+}
+
+void drawbullet(int x, int y)
+{
+	consoleBuffer[x + screen_x * y].Char.AsciiChar = 'o';
+	consoleBuffer[x + screen_x * y].Attributes = 6;
+}
+
+void erasebullet(int x, int y)
+{
+	consoleBuffer[x + screen_x * y].Char.AsciiChar = ' ';
+	consoleBuffer[x + screen_x * y].Attributes = 0;
+}
+
+void setcursor(bool visible)
+{
+	HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_CURSOR_INFO lpCursor;
+	lpCursor.bVisible = visible;
+	lpCursor.dwSize = 20;
+	SetConsoleCursorInfo(console, &lpCursor);
+}
+
+void generate_enemy_move_up()
+{
+	int enemy_size = (rand() % 3) + 1;
+	if (enemy_size == 1 && enemysup < 4)
+	{
+		int x = (rand() % 11) + 49;
+		enemy z = { x,21,1 };
+		enemy_up.push_back(z);
+	}
+	if (enemy_size == 2 && enemymup < 2)
+	{
+		int x = (rand() % 11) + 49;
+		enemy z = { x,21,2 };
+		enemy_up.push_back(z);
+	}
+	if (enemy_size == 3 && enemylup < 1)
+	{
+		int x = (rand() % 11) + 49;
+		enemy z = { x,21,3 };
+		enemy_up.push_back(z);
+	}
+}
+
+void enemy_move_up()
+{
+	for (int i = 0;i < enemy_up.size();i++)
+	{
+		if (enemy_up[i].y > 3)
+		{
+			enemy_up[i].y--;
+		}
+		else
+		{
+			enemy_up.erase(enemy_up.begin() + i);
+		}
+	}
+}
+
+void generate_enemy_move_down()
+{
+	int enemy_size = (rand() % 3) + 1;
+	if (enemy_size == 1 && enemysdown < 4)
+	{
+		int x = (rand() % 11) + 49;
+		enemy z = { x,33,1 };
+		enemy_down.push_back(z);
+	}
+	if (enemy_size == 2 && enemymdown < 2)
+	{
+		int x = (rand() % 11) + 49;
+		enemy z = { x,33,2 };
+		enemy_down.push_back(z);
+	}
+	if (enemy_size == 3 && enemyldown < 1)
+	{
+		int x = (rand() % 11) + 49;
+		enemy z = { x,33,3 };
+		enemy_down.push_back(z);
+	}
+}
+
+void enemy_move_down()
+{
+	for (int i = 0;i < enemy_down.size();i++)
+	{
+		if (enemy_down[i].y < 51)
+		{
+			enemy_down[i].y++;
+		}
+		else
+		{
+			enemy_down.erase(enemy_down.begin() + i);
+		}
+	}
+}
+
+void generate_enemy_move_left()
+{
+	int enemy_size = (rand() % 3) + 1;
+	if (enemy_size == 1 && enemysleft < 4)
+	{
+		int y = (rand() % 11) + 22;
+		enemy z = { 48,y,1 };
+		enemy_left.push_back(z);
+	}
+	if (enemy_size == 2 && enemymleft < 2)
+	{
+		int y = (rand() % 11) + 22;
+		enemy z = { 48,y,2 };
+		enemy_left.push_back(z);
+	}
+	if (enemy_size == 3 && enemylleft < 1)
+	{
+		int y = (rand() % 11) + 22;
+		enemy z = { 48,y,3 };
+		enemy_left.push_back(z);
+	}
+}
+
+void enemy_move_left()
+{
+	for (int i = 0;i < enemy_left.size();i++)
+	{
+		if (enemy_left[i].x > 3)
+		{
+			enemy_left[i].x--;
+		}
+		else
+		{
+			enemy_left.erase(enemy_left.begin() + i);
+		}
+	}
+}
+
+void generate_enemy_move_right()
+{
+	int enemy_size = (rand() % 3) + 1;
+	if (enemy_size == 1 && enemysright < 4)
+	{
+		int y = (rand() % 11) + 22;
+		enemy z = { 60,y,1 };
+		enemy_right.push_back(z);
+	}
+	if (enemy_size == 2 && enemymright < 2)
+	{
+		int y = (rand() % 11) + 22;
+		enemy z = { 60,y,2 };
+		enemy_right.push_back(z);
+	}
+	if (enemy_size == 3 && enemylright < 1)
+	{
+		int y = (rand() % 11) + 22;
+		enemy z = { 60,y,3 };
+		enemy_right.push_back(z);
+	}
+}
+
+void enemy_move_right()
+{
+	for (int i = 0;i < enemy_right.size();i++)
+	{
+		if (enemy_right[i].x < 106)
+		{
+			enemy_right[i].x++;
+		}
+		else
+		{
+			enemy_right.erase(enemy_right.begin() + i);
+		}
+	}
+}
+
+void fill_enemy_up_to_buffer()
+{
+	int enemycolor;
+	for (int i = 0;i < enemy_up.size();i++)
+	{
+		consoleBuffer[enemy_up[i].x + screen_x * enemy_up[i].y].Char.AsciiChar = '*';
+		if (enemy_up[i].size == 1)
+		{
+			enemycolor = 3;
+		}
+		if (enemy_up[i].size == 2)
+		{
+			enemycolor = 4;
+		}
+		if (enemy_up[i].size == 3)
+		{
+			enemycolor = 5;
+		}
+		consoleBuffer[enemy_up[i].x + screen_x * enemy_up[i].y].Attributes = enemycolor;
+	}
+}
+
+void fill_enemy_down_to_buffer()
+{
+	int enemycolor;
+	for (int i = 0;i < enemy_down.size();i++)
+	{
+		consoleBuffer[enemy_down[i].x + screen_x * enemy_down[i].y].Char.AsciiChar = '*';
+		if (enemy_down[i].size == 1)
+		{
+			enemycolor = 3;
+		}
+		if (enemy_down[i].size == 2)
+		{
+			enemycolor = 4;
+		}
+		if (enemy_down[i].size == 3)
+		{
+			enemycolor = 5;
+		}
+		consoleBuffer[enemy_down[i].x + screen_x * enemy_down[i].y].Attributes = enemycolor;
+	}
+}
+
+void fill_enemy_left_to_buffer()
+{
+	int enemycolor;
+	for (int i = 0;i < enemy_left.size();i++)
+	{
+		consoleBuffer[enemy_left[i].x + screen_x * enemy_left[i].y].Char.AsciiChar = '*';
+		if (enemy_left[i].size == 1)
+		{
+			enemycolor = 3;
+		}
+		if (enemy_left[i].size == 2)
+		{
+			enemycolor = 4;
+		}
+		if (enemy_left[i].size == 3)
+		{
+			enemycolor = 5;
+		}
+		consoleBuffer[enemy_left[i].x + screen_x * enemy_left[i].y].Attributes = enemycolor;
+	}
+}
+
+void fill_enemy_right_to_buffer()
+{
+	int enemycolor;
+	for (int i = 0;i < enemy_right.size();i++)
+	{
+		consoleBuffer[enemy_right[i].x + screen_x * enemy_right[i].y].Char.AsciiChar = '*';
+		if (enemy_right[i].size == 1)
+		{
+			enemycolor = 3;
+		}
+		if (enemy_right[i].size == 2)
+		{
+			enemycolor = 4;
+		}
+		if (enemy_right[i].size == 3)
+		{
+			enemycolor = 5;
+		}
+		consoleBuffer[enemy_right[i].x + screen_x * enemy_right[i].y].Attributes = enemycolor;
+	}
+}
+
+void erase_enemy(int x, int y)
+{
+	consoleBuffer[x + screen_x * y].Char.AsciiChar = ' ';
+	consoleBuffer[x + screen_x * y].Attributes = 0;
+}
+
+void erase_bullet(int x, int y)
+{
+	consoleBuffer[x + screen_x * y].Char.AsciiChar = ' ';
+	consoleBuffer[x + screen_x * y].Attributes = 0;
+}
+
+
+int main()
+{
+	setcursor(0);
+	srand(time(NULL));
+	setConsole(screen_x, screen_y);
+	int enemy_direction;
+	char ch = ' ';
+	int sleepcount = 0;
+	int move_speed_up_down = 0;
+	int move_speed_left_right = 0;
+	int x = 54, y = 54;
+	drawgunxd(x, y);
+	vector<pair<int, int>> bulletxd;
+	vector<pair<int, int>> bulletxu;
+	vector<pair<int, int>> bulletyl;
+	vector<pair<int, int>> bulletyr;
+	fill_border_to_buffer();
+	fill_buffer_to_console();
+	DWORD numEvents = 0;
+	DWORD numEventsRead = 0;
+	setConsole(screen_x, screen_y);
+	setMode();
+	char eventreceive = 's';
+	char shoot = '0';
+	char lastshoot = '0';
+	while (play)
+	{
+		// to use with keyboard and mouse
+		GetNumberOfConsoleInputEvents(rHnd, &numEvents);
+		if (numEvents != 0)
+		{
+			INPUT_RECORD* eventBuffer = new INPUT_RECORD[numEvents];
+			ReadConsoleInput(rHnd, eventBuffer, numEvents, &numEventsRead);
+			for (DWORD i = 0; i < numEventsRead; ++i)
+			{
+				// get from KEYBOARD
+				if (eventBuffer[i].EventType == KEY_EVENT && eventBuffer[i].Event.KeyEvent.bKeyDown == true)
+				{
+					if (eventBuffer[i].Event.KeyEvent.wVirtualKeyCode == VK_ESCAPE)
+					{
+						play = false;
+					}
+					if (eventBuffer[i].Event.KeyEvent.wVirtualKeyCode == VK_DOWN)
+					{
+						eventreceive = '2';
+					}
+					if (eventBuffer[i].Event.KeyEvent.wVirtualKeyCode == VK_UP)
+					{
+						eventreceive = '8';
+					}
+					if (eventBuffer[i].Event.KeyEvent.wVirtualKeyCode == VK_LEFT)
+					{
+						eventreceive = '4';
+					}
+					if (eventBuffer[i].Event.KeyEvent.wVirtualKeyCode == VK_RIGHT)
+					{
+						eventreceive = '6';
+					}
+					if (eventBuffer[i].Event.KeyEvent.uChar.AsciiChar == 's')
+					{
+						eventreceive = 's';
+					}
+					if (eventBuffer[i].Event.KeyEvent.uChar.AsciiChar == 'a')
+					{
+						eventreceive = 'a';
+					}
+					if (eventBuffer[i].Event.KeyEvent.uChar.AsciiChar == 'w')
+					{
+						eventreceive = 'w';
+					}
+					if (eventBuffer[i].Event.KeyEvent.uChar.AsciiChar == 'd')
+					{
+						eventreceive = 'd';
+					}
+					if (eventBuffer[i].Event.KeyEvent.uChar.AsciiChar == ' ')
+					{
+						shoot = ' ';
+					}
+					else
+					{
+						shoot = '0';
+					}
+				}
+			}
+			delete[] eventBuffer;
+		}
+		else
+		{
+			shoot = '0';
+		}
+
+		if (sleepcount == 10)
+		{
+			generate_enemy_move_up();
+			generate_enemy_move_down();
+			generate_enemy_move_left();
+			generate_enemy_move_right();
+			sleepcount = 0;
+		}
+		if (move_speed_up_down == 5)
+		{
+			enemy_move_up();
+			enemy_move_down();
+			move_speed_up_down = 0;
+		}
+		if (move_speed_left_right == 3)
+		{
+			enemy_move_left();
+			enemy_move_right();
+			move_speed_left_right = 0;
+		}
+		clear_buffer();
+		fill_enemy_up_to_buffer();
+		fill_enemy_down_to_buffer();
+		fill_enemy_left_to_buffer();
+		fill_enemy_right_to_buffer();
+
+		if (eventreceive == 's')
+		{
+			erasegunx(x, y);
+			eraseguny(x, y);
+			x = 54, y = 54;
+			drawgunxd(x, y);
+		}
+		if (eventreceive == 'w')
+		{
+			erasegunx(x, y);
+			eraseguny(x, y);
+			x = 54, y = 0;
+			drawgunxu(x, y);
+		}
+		if (eventreceive == 'a')
+		{
+			erasegunx(x, y);
+			eraseguny(x, y);
+			x = 0, y = 27;
+			drawgunyl(x, y);
+		}
+		if (eventreceive == 'd')
+		{
+			erasegunx(x, y);
+			eraseguny(x, y);
+			x = 109, y = 27;
+			drawgunyr(x, y);
+		}
+
+		if (eventreceive == '4' && (y == 0 || y == 54))
+		{
+			erasegunx(x, y);
+			if (y == 0)
+			{
+				if (x <= 2)
+				{
+					x = 3;
+				}
+				drawgunxu(--x, y);
+			}
+			else
+			{
+				if (x <= 2)
+				{
+					x = 3;
+				}
+				drawgunxd(--x, y);
+			}
+		}
+		if (eventreceive == '6' && (y == 0 || y == 54))
+		{
+			erasegunx(x, y);
+			if (y == 0)
+			{
+				if (x >= 105)
+				{
+					x = 104;
+				}
+				drawgunxu(++x, y);
+			}
+			else
+			{
+				if (x >= 105)
+				{
+					x = 104;
+				}
+				drawgunxd(++x, y);
+			}
+		}
+		if (eventreceive == '2' && (x == 0 || x == 109))
+		{
+			eraseguny(x, y);
+			if (x == 0)
+			{
+				if (y >= 50)
+				{
+					y = 49;
+				}
+				drawgunyl(x, ++y);
+			}
+			else
+			{
+				if (y >= 50)
+				{
+					y = 49;
+				}
+				drawgunyr(x, ++y);
+			}
+		}
+		if (eventreceive == '8' && (x == 0 || x == 109))
+		{
+			eraseguny(x, y);
+			if (x == 0)
+			{
+				if (y <= 2)
+				{
+					y = 3;
+				}
+				drawgunyl(x, --y);
+			}
+			else
+			{
+				if (y <= 2)
+				{
+					y = 3;
+				}
+				drawgunyr(x, --y);
+			}
+		}
+
+		if (shoot == ' ' && lastshoot == '0')
+		{
+			if (y == 54)
+			{
+				bulletxd.push_back(make_pair(x + 1, y - 2));
+			}
+			if (y == 0)
+			{
+				bulletxu.push_back(make_pair(x + 1, y + 2));
+			}
+			if (x == 0)
+			{
+				bulletyl.push_back(make_pair(x + 2, y + 1));
+			}
+			if (x == 109)
+			{
+				bulletyr.push_back(make_pair(x - 2, y + 1));
+			}
+		}
+		lastshoot = shoot;
+
+		for (int i = 0; i < bulletxd.size(); i++)
+		{
+			if (bulletxd[i].second > 33)
+			{
+				if (consoleBuffer[bulletxd[i].first + screen_x * (bulletxd[i].second - 1)].Char.AsciiChar == '*')
+				{
+					erase_enemy(bulletxd[i].first, (bulletxd[i].second) - 1);
+					erase_bullet(bulletxd[i].first, bulletxd[i].second);
+					for (int j = 0; j < enemy_down.size();j++)
+					{
+						if (enemy_down[j].x == bulletxd[i].first && enemy_down[j].y + 1 == bulletxd[i].second)
+						{
+							enemy_down.erase(enemy_down.begin() + j);
+							j = j - 1;
+						}
+					}
+					bulletxd.erase(bulletxd.begin() + i);
+					i = i - 1;
+				}
+				else
+				{
+					erasebullet(bulletxd[i].first, bulletxd[i].second);
+					drawbullet(bulletxd[i].first, --bulletxd[i].second);
+				}
+			}
+			else
+			{
+				erasebullet(bulletxd[i].first, bulletxd[i].second);
+				bulletxd.erase(bulletxd.begin() + i);
+				i = i - 1;
+			}
+		}
+		for (int i = 0; i < bulletxu.size(); i++)
+		{
+			if (bulletxu[i].second < 21)
+			{
+				if (consoleBuffer[bulletxu[i].first + screen_x * (bulletxu[i].second + 1)].Char.AsciiChar == '*')
+				{
+					erase_enemy(bulletxu[i].first, (bulletxu[i].second) + 1);
+					erase_bullet(bulletxu[i].first, bulletxu[i].second);
+					for (int j = 0; j < enemy_up.size();j++)
+					{
+						if (enemy_up[j].x == bulletxu[i].first && enemy_up[j].y - 1 == bulletxu[i].second)
+						{
+							enemy_up.erase(enemy_up.begin() + j);
+							j = j - 1;
+						}
+					}
+					bulletxu.erase(bulletxu.begin() + i);
+					i = i - 1;
+				}
+				else
+				{
+					erasebullet(bulletxu[i].first, bulletxu[i].second);
+					drawbullet(bulletxu[i].first, ++bulletxu[i].second);
+				}
+			}
+		}
+		for (int i = 0; i < bulletyl.size(); i++)
+		{
+			if (bulletyl[i].first < 48)
+			{
+				if (consoleBuffer[bulletyl[i].first + 1 + screen_x * (bulletyl[i].second)].Char.AsciiChar == '*')
+				{
+					erase_enemy((bulletyl[i].first + 1), bulletyl[i].second);
+					erase_bullet(bulletyl[i].first, bulletyl[i].second);
+					for (int j = 0; j < enemy_left.size();j++)
+					{
+						if (enemy_left[j].x - 1 == bulletyl[i].first && enemy_left[j].y == bulletyl[i].second)
+						{
+							enemy_left.erase(enemy_left.begin() + j);
+							j = j - 1;
+						}
+					}
+					bulletyl.erase(bulletyl.begin() + i);
+					i = i - 1;
+				}
+				else
+				{
+					erasebullet(bulletyl[i].first, bulletyl[i].second);
+					drawbullet(++bulletyl[i].first, bulletyl[i].second);
+				}
+			}
+		}
+		for (int i = 0; i < bulletyr.size(); i++)
+		{
+			if (bulletyr[i].first > 60)
+			{
+				if (consoleBuffer[bulletyr[i].first - 1 + screen_x * (bulletyr[i].second)].Char.AsciiChar == '*')
+				{
+					erase_enemy((bulletyr[i].first - 1), bulletyr[i].second);
+					erase_bullet(bulletyr[i].first, bulletyr[i].second);
+					for (int j = 0; j < enemy_right.size();j++)
+					{
+						if (enemy_right[j].x + 1 == bulletyr[i].first && enemy_right[j].y == bulletyr[i].second)
+						{
+							enemy_right.erase(enemy_right.begin() + j);
+							j = j - 1;
+						}
+					}
+					bulletyr.erase(bulletyr.begin() + i);
+					i = i - 1;
+				}
+				else
+				{
+					erasebullet(bulletyr[i].first, bulletyr[i].second);
+					drawbullet(--bulletyr[i].first, bulletyr[i].second);
+				}
+			}
+		}
+		fill_border_to_buffer();
+		fill_buffer_to_console();
+		Sleep(50);
+		sleepcount = sleepcount + 1;
+		move_speed_up_down += 1;
+		move_speed_left_right += 1;
+	}
+	return 0;
+}
