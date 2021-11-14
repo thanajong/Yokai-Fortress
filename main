@@ -2,7 +2,7 @@
 #include<stdio.h>
 #include<windows.h>
 #include<conio.h>
-#include<bits/stdc++.h>
+#include <bits/stdc++.h>
 using namespace std;
 #include<thread>
 #include<time.h>
@@ -18,11 +18,18 @@ COORD characterPos = { 0,0 };
 HANDLE rHnd;
 DWORD fdwMode;
 
+bool ammo = 1;
 struct bullets {
-	int x=1;
-	int y=1;
+	int x = 1;
+	int y = 1;
 	int dir = 0;
-}bullet[9999];
+}bullet[100];
+
+struct bullets2 {
+	int x = 1;
+	int y = 1;
+	int dir = 0;
+}bullet2[100];
 
 const int enemycount = 28;
 struct enemies {
@@ -44,10 +51,12 @@ struct items {
 int gametime = 76000;
 int score = 0;
 bool itemstatus = 0;
-int bulletcount = 0 ;
+int bulletcount = 0;
+int bullet2count = 0;
 int streak = 0;
 int enemysup = 0, enemysdown = 0, enemysleft = 0, enemysright = 0, enemymup = 0, enemymdown = 0, enemymleft = 0, enemymright = 0, enemylup = 0, enemyldown = 0, enemylleft = 0, enemylright = 0;
 int enemy_safe = 0;
+int x = 54, y = 54;
 
 void fill_border_to_buffer()
 {
@@ -157,7 +166,7 @@ void item_move()
 	if (item.dirx == 1)
 	{
 		item.x++;
-		if (item.x + 1 == 107 || (item.x + 1 == 49 && (item.y>=22&& item.y <=32)))
+		if (item.x + 1 == 107 || (item.x + 1 == 49 && (item.y >= 22 && item.y <= 32)))
 		{
 			item.dirx = 0;
 		}
@@ -173,7 +182,7 @@ void item_move()
 	if (item.diry == 1)
 	{
 		item.y++;
-		if (item.y + 1 == 52 || ((item.y + 1 == 22||item.y==23) && (item.x >= 49 && item.x <= 59 )))
+		if (item.y + 1 == 52 || ((item.y + 1 == 22 || item.y == 23) && (item.x >= 49 && item.x <= 59)))
 		{
 			item.diry = 0;
 		}
@@ -181,7 +190,7 @@ void item_move()
 	else
 	{
 		item.y--;
-		if (item.y - 1 == 2 || ((item.y - 1 == 32||item.y==31) && (item.x >= 49 && item.x <= 59)))
+		if (item.y - 1 == 2 || ((item.y - 1 == 32 || item.y == 31) && (item.x >= 49 && item.x <= 59)))
 		{
 			item.diry = 1;
 		}
@@ -320,43 +329,78 @@ void setcursor(bool visible)
 	SetConsoleCursorInfo(console, &lpCursor);
 }
 
+int e1count = 0, e2count = 0, e3count = 0, e4count = 0;
 void generate_enemy()
 {
+	e1count = 0, e2count = 0, e3count = 0, e4count = 0;
+	int phase = 0;
+	int phase1 = 220;
+	int phase2 = 128;
+	int phase3 = 64;
+	int phase4 = 32;
 	for (int i = 0; i < 4 + enemy_safe; i++)
 	{
-		if (enemy[i].dir == 0)
+		if (gametime <= 76000 && gametime >= 70000)
 		{
-			enemy[i].type = (rand() % 3) + 1;
-			enemy[i].dir = (rand() % 4) + 1;
-			if (enemy[i].dir == 1)
-			{
-				enemy[i].x = (rand() % 11) + 49;
-				enemy[i].y = 21;
-			}
-			if (enemy[i].dir == 2)
-			{
-				enemy[i].x = (rand() % 11) + 49;
-				enemy[i].y = 33;
-			}
-			if (enemy[i].dir == 3)
-			{
-				enemy[i].y = (rand() % 11) + 22;
-				enemy[i].x = 48;
-			}
-			if (enemy[i].dir == 4)
-			{
-				enemy[i].y = (rand() % 11) + 22;
-				enemy[i].x = 60;
-			}
-			for (int j = 0; j < 4 + enemy_safe; j++)
-			{
-				if (i == j)
-					break;
-				if (enemy[i].x == enemy[j].x && enemy[i].y == enemy[j].y)
-					i--;
-			}			
+			phase = phase1;
 		}
-	}	
+		if (gametime <= 70000 && gametime >= 55000)
+		{
+			phase = phase2;
+		}
+		if (gametime <= 55000 && gametime >= 25000)
+		{
+			phase = phase3;
+		}
+		if (gametime <= 25000 && gametime >= 0)
+		{
+			phase = phase4;
+		}
+		if (rand() % phase == 1)
+		{
+			if (enemy[i].dir == 0)
+			{
+				enemy[i].type = (rand() % 3) + 1;
+				enemy[i].dir = (rand() % 4) + 1;
+				if (enemy[i].dir == 1)
+				{
+					enemy[i].x = (rand() % 11) + 49;
+					enemy[i].y = 21;
+					e1count += 1;
+				}
+				if (enemy[i].dir == 2)
+				{
+					enemy[i].x = (rand() % 11) + 49;
+					enemy[i].y = 33;
+					e2count += 1;
+				}
+				if (enemy[i].dir == 3)
+				{
+					enemy[i].y = (rand() % 11) + 22;
+					enemy[i].x = 48;
+					e3count += 1;
+				}
+				if (enemy[i].dir == 4)
+				{
+					enemy[i].y = (rand() % 11) + 22;
+					enemy[i].x = 60;
+					e4count += 1;
+				}
+				/*if (e1count > 7 || e2count > 7 || e3count > 7 || e4count > 7)
+				{
+					i--;
+				}
+				else
+					for (int j = 0; j < 4 + enemy_safe; j++)
+					{
+						if (i == j)
+							break;
+						if (enemy[i].x == enemy[j].x && enemy[i].y == enemy[j].y)
+							i--;
+					}*/
+			}
+		}		
+	}
 }
 
 void enemy_move()
@@ -392,7 +436,7 @@ void fill_enemy_to_buffer()
 	{
 		if (enemy[i].dir > 0)
 		{
-			int enemycolor = 0 ;
+			int enemycolor = 0;
 			consoleBuffer[enemy[i].x + screen_x * enemy[i].y].Char.AsciiChar = '*';
 			if (enemy[i].type == 1)
 			{
@@ -510,7 +554,7 @@ void bullet_move()
 	{
 		if (bullet[i].dir == 1)
 		{
-			if (bullet[i].y>33)	bullet[i].y--;
+			if (bullet[i].y > 33)	bullet[i].y--;
 			else bullet[i].dir = 0;
 		}
 		if (bullet[i].dir == 2)
@@ -521,23 +565,52 @@ void bullet_move()
 		if (bullet[i].dir == 3)
 		{
 			if (bullet[i].x < 48)	bullet[i].x++;
-			else bullet[i].dir = 0;			
+			else bullet[i].dir = 0;
 		}
 		if (bullet[i].dir == 4)
 		{
 			if (bullet[i].x > 60)	bullet[i].x--;
 			else bullet[i].dir = 0;
 		}
-	}	
+	}
 }
 
+void bullet2_move()
+{
+	for (int i = 0; i < 100; i++)
+	{
+		if (bullet2[i].dir == 1)
+		{
+			if (bullet2[i].y < 21)	bullet2[i].y++;
+			else bullet2[i].dir = 0;
+		}
+		if (bullet2[i].dir == 2)
+		{
+			if (bullet2[i].y > 33)	bullet2[i].y--;
+			else bullet2[i].dir = 0;
+		}
+		if (bullet2[i].dir == 3)
+		{
+			if (bullet2[i].x > 60)	bullet2[i].x--;
+			else bullet2[i].dir = 0;
+		}
+		if (bullet2[i].dir == 4)
+		{
+			if (bullet2[i].x < 48)	bullet2[i].x++;
+			else bullet2[i].dir = 0;
+		}
+	}
+}
+
+bool it1 = 0, it2 = 0, it3 = 0;
+int it1start = 0, it2start = 0, it3start = 0;
 void bullet_bounce()
 {
 	for (int i = 0; i < 100; i++)
 	{
-		for (int j = 0; j < 7; j++)
+		for (int j = 0; j < 28; j++)
 		{
-			if (bullet[i].x == enemy[j].x && bullet[i].dir > 0 )
+			if (bullet[i].x == enemy[j].x && bullet[i].dir > 0)
 			{
 				if (bullet[i].y == (enemy[j].y))
 				{
@@ -555,41 +628,41 @@ void bullet_bounce()
 						enemy[j].dir = 0;
 					}
 				}
-				if (bullet[i].y == (enemy[j].y))
+			}
+		}
+		if (bullet[i].x == item.x && bullet[i].y == item.y && bullet[i].dir>0 && itemstatus == 1)
+		{
+			itemstatus = 0;
+			if (item.type == 1)
+			{
+				it1 = 1;
+				it1start = gametime;
+			}
+			if (item.type == 2)
+			{
+				it2 = 1;
+				it2start = gametime;
+			}
+			if (item.type == 3)
+			{
+				it3 = 1;
+				it3start = gametime;
+			}
+		}
+	}
+}
+
+void bullet2_bounce()
+{
+	for (int i = 0; i < 100; i++)
+	{
+		for (int j = 0; j < 28; j++)
+		{
+			if (bullet2[i].x == enemy[j].x && bullet2[i].dir > 0)
+			{
+				if (bullet2[i].y == (enemy[j].y))
 				{
-					bullet[i].dir = 0;
-					if (enemy[j].type > 1)
-					{
-						enemy[j].type -= 1;
-						score += 100;
-						streak += 100;
-					}
-					else if (enemy[j].type == 1)
-					{
-						score += 100;
-						streak += 100;
-						enemy[j].dir = 0;
-					}
-				}
-				if (bullet[i].y == (enemy[j].y))
-				{
-					bullet[i].dir = 0;
-					if (enemy[j].type > 1)
-					{
-						enemy[j].type -= 1;
-						score += 100;
-						streak += 100;
-					}
-					else if (enemy[j].type == 1)
-					{
-						score += 100;
-						streak += 100;
-						enemy[j].dir = 0;
-					}
-				}
-				if (bullet[i].y == (enemy[j].y))
-				{
-					bullet[i].dir = 0;
+					bullet2[i].dir = 0;
 					if (enemy[j].type > 1)
 					{
 						enemy[j].type -= 1;
@@ -604,7 +677,129 @@ void bullet_bounce()
 					}
 				}
 			}
-		}		
+		}
+		if (bullet2[i].x == item.x && bullet2[i].y == item.y && bullet2[i].dir > 0 && itemstatus==1)
+		{
+			itemstatus = 0;
+			if (item.type == 1)
+			{
+				it1 = 1;
+				it1start = gametime;
+			}
+			if (item.type == 2)
+			{
+				it2 = 1;
+				it2start = gametime;
+			}
+			if (item.type == 3)
+			{
+				it3 = 1;
+				it3start = gametime;
+			}
+		}
+	}
+}
+
+void item3_bounce()
+{
+	for (int i = 0; i < 28; i++)
+	{
+		if (y == 54)
+		{
+			if (enemy[i].x == x + 1 && enemy[i].y > 33)
+			{
+				if (enemy[i].type == 1)
+				{
+					score += 100;
+					streak += 100;
+					enemy[i].type = 0;
+				}
+				if (enemy[i].type == 2)
+				{
+					score += 200;
+					streak += 100;
+					enemy[i].type = 0;
+				}
+				if (enemy[i].type == 3)
+				{
+					score += 300;
+					streak += 100;
+					enemy[i].type = 0;
+				}
+			}
+		}
+		if (y == 0)
+		{
+			if (enemy[i].x == x + 1 && enemy[i].y < 21)
+			{
+				if (enemy[i].type == 1)
+				{
+					score += 100;
+					streak += 100;
+					enemy[i].type = 0;
+				}
+				if (enemy[i].type == 2)
+				{
+					score += 200;
+					streak += 100;
+					enemy[i].type = 0;
+				}
+				if (enemy[i].type == 3)
+				{
+					score += 300;
+					streak += 100;
+					enemy[i].type = 0;
+				}
+			}
+		}
+		if (x == 0)
+		{
+			if (enemy[i].y == y + 1 && enemy[i].x < 48)
+			{
+				if (enemy[i].type == 1)
+				{
+					score += 100;
+					streak += 100;
+					enemy[i].type = 0;
+				}
+				if (enemy[i].type == 2)
+				{
+					score += 200;
+					streak += 100;
+					enemy[i].type = 0;
+				}
+				if (enemy[i].type == 3)
+				{
+					score += 300;
+					streak += 100;
+					enemy[i].type = 0;
+				}
+			}
+		}
+		if (x == 109 && enemy[i].x > 60)
+		{
+			if (enemy[i].y == y + 1)
+			{
+				if (enemy[i].type == 1)
+				{
+					score += 100;
+					streak += 100;
+					enemy[i].type = 0;
+				}
+				if (enemy[i].type == 2)
+				{
+					score += 200;
+					streak += 100;
+					enemy[i].type = 0;
+				}
+				if (enemy[i].type == 3)
+				{
+					score += 300;
+					streak += 100;
+					enemy[i].type = 0;
+				}
+			}
+		}
 	}
 }
 
@@ -620,6 +815,115 @@ void fill_bullet_to_buffer()
 	}
 }
 
+void fill_bullet2_to_buffer()
+{
+	for (int i = 0; i < 100; i++)
+	{
+		if (bullet2[i].dir > 0 && bullet2[i].x > 0 && bullet2[i].x < screen_x && bullet2[i].y < screen_y)
+		{
+			consoleBuffer[bullet2[i].x + screen_x * bullet2[i].y].Char.AsciiChar = 'o';
+			consoleBuffer[bullet2[i].x + screen_x * bullet2[i].y].Attributes = 6;
+		}
+	}
+}
+
+void fill_item3_to_buffer()
+{
+	if (y == 54)
+	{
+		for (int i = 1; i < 22; i++)
+		{
+			consoleBuffer[x + 1 + screen_x * (y - i)].Char.AsciiChar = ' ';
+			consoleBuffer[x + 1 + screen_x * (y - i)].Attributes = 112;
+		}
+
+	}
+	if (y == 0)
+	{
+		for (int i = 1; i < 22; i++)
+		{
+			consoleBuffer[x + 1 + screen_x * (y + i)].Char.AsciiChar = ' ';
+			consoleBuffer[x + 1 + screen_x * (y + i)].Attributes = 112;
+		}
+
+	}
+	if (x == 0)
+	{
+		for (int i = 3; i < 49; i++)
+		{
+			consoleBuffer[x+i + screen_x * (y+1)].Char.AsciiChar = ' ';
+			consoleBuffer[x+i + screen_x * (y+1)].Attributes = 112;
+		}
+	}
+	if (x == 109)
+	{
+		for (int i = 3; i < 50; i++)
+		{
+			consoleBuffer[x - i + screen_x * (y + 1)].Char.AsciiChar = ' ';
+			consoleBuffer[x - i + screen_x * (y + 1)].Attributes = 112;
+		}
+	}
+}
+
+void ult_move()
+{
+	int ultcolor = 16 * (rand() % 15 + 1);
+	for (int i = 33; i < 52; i++)
+	{	
+		for (int j = 49; j < 60; j++)
+		{
+			consoleBuffer[j + screen_x * i].Char.AsciiChar = ' ';
+			consoleBuffer[j + screen_x * i].Attributes = ultcolor;
+		}
+	}
+	for (int i = 3; i < 22; i++)
+	{
+		for (int j = 49; j < 60; j++)
+		{
+			consoleBuffer[j + screen_x * i].Char.AsciiChar = ' ';
+			consoleBuffer[j + screen_x * i].Attributes = ultcolor;
+		}
+	}
+	for (int i = 22; i < 33; i++)
+	{
+		for (int j = 3; j < 49; j++)
+		{
+			consoleBuffer[j + screen_x * i].Char.AsciiChar = ' ';
+			consoleBuffer[j + screen_x * i].Attributes = ultcolor;
+		}
+	}
+	for (int i = 22; i < 33; i++)
+	{
+		for (int j = 60; j < 107; j++)
+		{
+			consoleBuffer[j + screen_x * i].Char.AsciiChar = ' ';
+			consoleBuffer[j + screen_x * i].Attributes = ultcolor;
+		}
+	}
+}
+
+void ult_bounce()
+{
+	for (int i = 0; i < 28; i++)
+	{
+		if (enemy[i].type == 1) 
+		{
+			score += 100;
+			enemy[i].type = 0;
+		}
+		if (enemy[i].type == 2)
+		{
+			score += 200;
+			enemy[i].type = 0;
+		}
+		if (enemy[i].type == 3)
+		{
+			score += 300;
+			enemy[i].type = 0;
+		}
+	}
+}
+
 int main()
 {
 	setcursor(0);
@@ -629,17 +933,17 @@ int main()
 	int sleepcount = 0;
 	int move_speed_up_down = 0;
 	int move_speed_left_right = 0;
-	int x = 54, y = 54;
 	int streak = 0;
 	int item_speed = 0;
+	int bullet_speed = 0;
+	bool shoot = 0;
+	bool ult = 0;
 	drawgunxd(x, y);
 	DWORD numEvents = 0;
 	DWORD numEventsRead = 0;
 	setConsole(screen_x, screen_y);
 	setMode();
 	char eventreceive = 's';
-	char shoot = '0';
-	char lastshoot = '0';
 	while (play)
 	{
 		// to use with keyboard and mouse
@@ -689,9 +993,17 @@ int main()
 					{
 						eventreceive = 'd';
 					}
+					if (eventBuffer[i].Event.KeyEvent.uChar.AsciiChar == 'e')
+					{
+						ult = 1;
+					}
+					if (eventBuffer[i].Event.KeyEvent.uChar.AsciiChar == 'r')
+					{
+						ammo = 1;
+					}
 					if (eventBuffer[i].Event.KeyEvent.uChar.AsciiChar == ' ')
 					{
-						shoot = ' ';
+						shoot = 1;
 					}
 				}
 			}
@@ -700,28 +1012,56 @@ int main()
 
 		bullet_move();
 		bullet_bounce();
-		if (sleepcount == 10)
+		bullet2_move();
+		bullet2_bounce();
+		if (it3)
 		{
-			generate_enemy();
-			sleepcount = 0;
+			item3_bounce();
 		}
-		generate_item();
+		if (streak > 5000)
+		{
+			if (ult)
+				ult_bounce();
+		}		
+		generate_enemy();
+		if (!it1 && !it2 && !it3)
+		{
+			generate_item();
+			if (item_speed == 5)
+			{
+				item_speed = 0;
+			}
+			item_move();
+		}
 
 		if (move_speed_up_down == 6)
 		{
 			enemy_move();
 			move_speed_up_down = 0;
 		}
-		if (item_speed == 5)
-		{			
-			item_speed = 0;
-		}
-		item_move();
 		
+		if (bullet_speed == 5)
+		{
+			bullet_speed = 0;
+		}
+
 		clear_buffer();
 		fill_enemy_to_buffer();
 		fill_bullet_to_buffer();
-		fill_item_to_buffer();
+		fill_bullet2_to_buffer();
+		if (!it1 && !it2 && !it3)
+		{
+			fill_item_to_buffer();
+		}
+		if (it3 && shoot)
+		{
+			fill_item3_to_buffer();
+		}
+		if (streak > 5000)
+		{
+			if (ult)
+				ult_move();
+		}		
 
 		if (eventreceive == 's')
 		{
@@ -833,43 +1173,83 @@ int main()
 			}
 		}
 
-		if (shoot == ' ')
+		if ((((shoot && bullet_speed%2==0) || it1) && ammo)&&!it3)
 		{
-			for (int i = 0;i < 100;i++)
+			for (int i = 0; i < 100; i++)
 			{
 				if (bullet[i].dir == 0 && bulletcount == i)
 				{
 					if (y == 54)
 					{
-						bullet[i].x = x+1;
-						bullet[i].y = y-2;
+						bullet[i].x = x + 1;
+						bullet[i].y = y - 2;
 						bullet[i].dir = 1;
 					}
 					if (y == 0)
 					{
-						bullet[i].x = x+1;
-						bullet[i].y = y+2;
+						bullet[i].x = x + 1;
+						bullet[i].y = y + 2;
 						bullet[i].dir = 2;
 					}
 					if (x == 0)
 					{
-						bullet[i].x = x+2;
-						bullet[i].y = y+1;
+						bullet[i].x = x + 2;
+						bullet[i].y = y + 1;
 						bullet[i].dir = 3;
 					}
 					if (x == 109)
 					{
-						bullet[i].x = x-2;
-						bullet[i].y = y+1;
+						bullet[i].x = x - 2;
+						bullet[i].y = y + 1;
 						bullet[i].dir = 4;
 					}
-				}		
+				}
+				if ((it2 && ammo)&&!it3)
+				{
+					if (bullet2[i].dir == 0 && bullet2count == i)
+					{
+						if (y == 54)
+						{
+							bullet2[i].x = x + 1;
+							bullet2[i].y = 2;
+							bullet2[i].dir = 1;
+						}
+						if (y == 0)
+						{
+							bullet2[i].x = x + 1;
+							bullet2[i].y = 52;
+							bullet2[i].dir = 2;
+						}
+						if (x == 0)
+						{
+							bullet2[i].x = 107;
+							bullet2[i].y = y + 1;
+							bullet2[i].dir = 3;
+						}
+						if (x == 109)
+						{
+							bullet2[i].x = 2;
+							bullet2[i].y = y + 1;
+							bullet2[i].dir = 4;
+						}
+					}
+				}
 			}
-			bulletcount += 1;
-			
+			bulletcount = (bulletcount + 1) % 100;
+			bullet2count = (bullet2count + 1) % 100;
+			if (bulletcount == 10)
+			{
+				ammo = 0;
+			}
 		}
-		lastshoot = shoot;
 		
+		if (it1start - gametime > 7000)
+			it1 = 0;
+		if (it2start - gametime > 7000)
+			it2 = 0;
+		if (it3start - gametime > 5000)
+			it3 = 0;
+
 		fill_border_to_buffer();
 		fill_time_to_buffer();
 		fill_score_to_buffer(score);
@@ -879,8 +1259,9 @@ int main()
 		move_speed_up_down += 1;
 		move_speed_left_right += 1;
 		item_speed += 1;
-		if(enemy_safe<23)
-		enemy_safe += 1;
+		bullet_speed += 1;
+		if (enemy_safe < 23)
+			enemy_safe += 1;
 	}
 	return 0;
 }
